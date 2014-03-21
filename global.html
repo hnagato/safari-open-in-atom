@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<script type="text/javascript">
+
+safari.application.addEventListener('message', function(event) {
+  var page = event.target.page;
+  var buf = [];
+  var ws;
+
+  switch (event.name) {
+  case 'connect':
+    var origin = event.message;
+    ws = new WebSocket("ws://localhost:20833/?origin=" + origin);
+    ws.addEventListener('open', function() {
+      buf.forEach(function(message) {
+        ws.send(message);
+      })
+      buf = [];
+    });
+    ws.addEventListener('message', function(e) {
+      page.dispatchMessage('textchanged', e.data);
+    });
+    ws.addEventListener('close', function(e) {
+      page.dispatchMessage('disconnect', '');
+    });
+    break;
+
+  case 'textchanged':
+    if (ws === undefined || ws.readyState === ws.CONNECTING) {
+      buf.push(event.message);
+    } else {
+      ws.send(event.message);
+    }
+    break;
+  }
+
+}, false);
+
+</script>

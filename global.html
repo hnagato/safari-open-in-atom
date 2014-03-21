@@ -1,38 +1,43 @@
 <!DOCTYPE HTML>
 <script type="text/javascript">
+(function global(ws, buf) {
 
-safari.application.addEventListener('message', function(event) {
-  var page = event.target.page;
-  var buf = [];
-  var ws;
+  safari.application.addEventListener('message', function(event) {
+    var page = event.target.page;
 
-  switch (event.name) {
-  case 'connect':
-    var origin = event.message;
-    ws = new WebSocket("ws://localhost:20833/?origin=" + origin);
-    ws.addEventListener('open', function() {
-      buf.forEach(function(message) {
-        ws.send(message);
-      })
-      buf = [];
-    });
-    ws.addEventListener('message', function(e) {
-      page.dispatchMessage('textchanged', e.data);
-    });
-    ws.addEventListener('close', function(e) {
-      page.dispatchMessage('disconnect', '');
-    });
-    break;
+    switch (event.name) {
+    case 'ws-connect':
+      var origin = event.message;
 
-  case 'textchanged':
-    if (ws === undefined || ws.readyState === ws.CONNECTING) {
-      buf.push(event.message);
-    } else {
-      ws.send(event.message);
+      ws = new WebSocket("ws://localhost:20833/?origin=" + origin);
+
+      ws.addEventListener('open', function() {
+        buf.forEach(function(message) {
+          ws.send(message);
+        });
+        buf = [];
+      });
+
+      ws.addEventListener('close', function(e) {
+        page.dispatchMessage('ws-disconnected');
+      });
+
+      ws.addEventListener('message', function(e) {
+        page.dispatchMessage('atom-textchanged', e.data);
+      });
+
+      break;
+
+    case 'page-textchanged':
+      if (ws === null || ws.readyState === ws.CONNECTING) {
+        buf.push(event.message);
+      } else {
+        ws.send(event.message);
+      }
+      break;
     }
-    break;
-  }
 
-}, false);
+  }, false);
 
+})(null, []);
 </script>
